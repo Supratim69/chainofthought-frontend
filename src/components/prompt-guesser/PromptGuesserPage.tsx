@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Lightbulb, Star, Heart, Sparkles } from "lucide-react";
+import { getCookie } from "@/lib/utils";
 
 export default function PromptGuesserPage() {
     const [playerName, setPlayerName] = useState("");
     const router = useRouter();
 
     useEffect(() => {
-        const name = localStorage.getItem("playerName");
+        const name = getCookie("playerName");
         if (name) {
             setPlayerName(name);
         }

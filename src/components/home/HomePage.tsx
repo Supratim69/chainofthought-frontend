@@ -1,25 +1,41 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createOrUpdateUser } from "@/app/api/user";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pencil, Link2, Lightbulb, Star, Heart, Sparkles } from "lucide-react";
+import { getCookie, setCookie } from "@/lib/utils";
 
 export default function HomePage() {
     const [playerName, setPlayerName] = useState("");
     const router = useRouter();
 
-    const handleGameMode = (mode: "chain" | "guesser") => {
+    const [loading, setLoading] = useState(false);
+    useEffect(() => {
+        const nameFromCookie = getCookie("playerName");
+        if (nameFromCookie) {
+            setPlayerName(nameFromCookie);
+        }
+    }, []);
+    const handleGameMode = async (mode: "chain" | "guesser") => {
         if (!playerName.trim()) {
             alert("Please enter your name!");
             return;
         }
-
-        localStorage.setItem("playerName", playerName);
-
-        if (mode === "chain") {
-            router.push("/prompt-chain");
-        } else {
-            router.push("/prompt-guesser");
+        setLoading(true);
+        try {
+            const user = await createOrUpdateUser(playerName);
+            setCookie("playerName", user.user.displayName);
+            if (mode === "chain") {
+                router.push("/prompt-chain");
+            } else {
+                router.push("/prompt-guesser");
+            }
+        } catch (e) {
+            console.error("Failed to save user:", e);
+            alert("Failed to save user. Please try again.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -147,12 +163,13 @@ export default function HomePage() {
                                 onChange={(e) => setPlayerName(e.target.value)}
                                 className="h-14 text-xl px-6 bg-background border-4 border-foreground/80 focus:border-primary transition-all rounded-2xl font-bold"
                                 maxLength={20}
-                                onKeyDown={(e) => {
+                                disabled={loading}
+                                onKeyDown={async (e) => {
                                     if (
                                         e.key === "Enter" &&
                                         playerName.trim()
                                     ) {
-                                        handleGameMode("chain");
+                                        await handleGameMode("chain");
                                     }
                                 }}
                             />
@@ -164,6 +181,7 @@ export default function HomePage() {
                                 size="lg"
                                 onClick={() => handleGameMode("chain")}
                                 className="w-full h-16 text-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground border-4 border-foreground/80 rounded-2xl sketchy-shadow hover:translate-x-1 hover:translate-y-1 transition-all active:translate-x-0 active:translate-y-0 doodle-glow-blue"
+                                disabled={loading}
                             >
                                 <div className="flex items-center justify-center gap-3">
                                     <Link2 className="w-6 h-6" />
@@ -184,6 +202,7 @@ export default function HomePage() {
                                 size="lg"
                                 onClick={() => handleGameMode("guesser")}
                                 className="w-full h-16 text-xl font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground border-4 border-foreground/80 rounded-2xl sketchy-shadow hover:translate-x-1 hover:translate-y-1 transition-all active:translate-x-0 active:translate-y-0 doodle-glow-pink"
+                                disabled={loading}
                             >
                                 <div className="flex items-center justify-center gap-3">
                                     <Lightbulb className="w-6 h-6" />
